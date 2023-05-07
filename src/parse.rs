@@ -2,18 +2,18 @@ use std::borrow::Cow;
 
 use num::ToPrimitive;
 use rustpython_parser::ast::{
-    Boolop, Constant, Expr as AstExpr, ExprKind, Keyword, Operator as AstOperator, Stmt, StmtKind,
+    Boolop, Cmpop, Constant, Expr as AstExpr, ExprKind, Keyword, Operator as AstOperator, Stmt, StmtKind,
 };
 use rustpython_parser::parse_program;
 
-use crate::{Expr, Node, Operator, Value};
+use crate::types::{Expr, Node, Operator, Value};
 
 pub type ParseResult<T> = Result<T, Cow<'static, str>>;
 
 type ParseNode = Node<String, String>;
 type ParseExpr = Expr<String, String>;
 
-pub(crate) fn parse_code(code: &str, filename: Option<&str>) -> ParseResult<Vec<ParseNode>> {
+pub(crate) fn parse(code: &str, filename: Option<&str>) -> ParseResult<Vec<ParseNode>> {
     match parse_program(code, filename.unwrap_or("code.py")) {
         Ok(ast) => {
             // dbg!(&ast);
@@ -201,17 +201,14 @@ fn parse_expression(expression: AstExpr) -> ParseResult<ParseExpr> {
         ExprKind::Await { value: _ } => todo!("Await"),
         ExprKind::Yield { value: _ } => todo!("Yield"),
         ExprKind::YieldFrom { value: _ } => todo!("YieldFrom"),
-        ExprKind::Compare {
-            left: _,
-            ops: _,
-            comparators: _,
-        } => todo!("Compare"),
+        ExprKind::Compare { left, ops, comparators } => Ok(Expr::Op {
+            left: Box::new(parse_expression(*left)?),
+            op: convert_compare_op(first(ops)?),
+            right: Box::new(parse_expression(first(comparators)?)?),
+        }),
         ExprKind::Call { func, args, keywords } => {
             let func = get_name(*func)?;
-            let args = args
-                .into_iter()
-                .map(parse_expression)
-                .collect::<ParseResult<_>>()?;
+            let args = args.into_iter().map(parse_expression).collect::<ParseResult<_>>()?;
             // let kwargs = keywords
             //     .into_iter()
             //     .map(parse_kwargs)
@@ -294,6 +291,21 @@ fn convert_bool_op(op: Boolop) -> Operator {
     match op {
         Boolop::And => Operator::And,
         Boolop::Or => Operator::Or,
+    }
+}
+
+fn convert_compare_op(op: Cmpop) -> Operator {
+    match op {
+        Cmpop::Eq => Operator::Eq,
+        Cmpop::NotEq => Operator::NotEq,
+        Cmpop::Lt => Operator::Lt,
+        Cmpop::LtE => Operator::LtE,
+        Cmpop::Gt => Operator::Gt,
+        Cmpop::GtE => Operator::GtE,
+        Cmpop::Is => Operator::Is,
+        Cmpop::IsNot => Operator::IsNot,
+        Cmpop::In => Operator::In,
+        Cmpop::NotIn => Operator::NotIn,
     }
 }
 

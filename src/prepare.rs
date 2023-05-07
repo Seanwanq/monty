@@ -1,12 +1,12 @@
 use ahash::AHashMap;
 use std::borrow::Cow;
 
-use crate::{Expr, Node};
+use crate::types::{Builtins, Expr, Node};
 
-type PrepareResult<T> = Result<T, Cow<'static, str>>;
+pub(crate) type PrepareResult<T> = Result<T, Cow<'static, str>>;
 
-pub(crate) type RunNode = Node<usize, Builtin>;
-pub(crate) type RunExpr = Expr<usize, Builtin>;
+pub(crate) type RunNode = Node<usize, Builtins>;
+pub(crate) type RunExpr = Expr<usize, Builtins>;
 
 /// TODO:
 /// * pre-calculate const expressions
@@ -62,7 +62,7 @@ fn prepare_expression(expr: Expr<String, String>, namespace: &mut Namespace) -> 
             right: Box::new(prepare_expression(*right, namespace)?),
         }),
         Expr::Call { func, args } => {
-            let func = Builtin::find(&func)?;
+            let func = Builtins::find(&func)?;
             Ok(Expr::Call {
                 func,
                 args: args
@@ -100,20 +100,5 @@ impl Namespace {
             self.names_count += 1;
             name
         })
-    }
-}
-
-// this is a temporary hack
-#[derive(Debug, Clone)]
-pub enum Builtin {
-    Print,
-}
-
-impl Builtin {
-    fn find(name: &str) -> PrepareResult<Self> {
-        match name {
-            "print" => Ok(Builtin::Print),
-            _ => Err(format!("unknown function: {}", name).into()),
-        }
     }
 }
