@@ -25,7 +25,7 @@ pub(crate) fn parse(code: &str, filename: Option<&str>) -> ParseResult<Vec<Parse
 }
 
 fn parse_statements(statements: Vec<Stmt>) -> ParseResult<Vec<ParseNode>> {
-    statements.into_iter().map(|e| parse_statement(e)).collect()
+    statements.into_iter().map(parse_statement).collect()
 }
 
 fn parse_statement(statement: Stmt) -> ParseResult<ParseNode> {

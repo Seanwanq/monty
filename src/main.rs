@@ -24,7 +24,7 @@ fn main() -> ExitCode {
     let code = match read_file(file_path) {
         Ok(code) => code,
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             return ExitCode::FAILURE;
         }
     };
@@ -38,14 +38,14 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         },
         Err(err) => {
-            eprintln!("Error running code: {}", err);
+            eprintln!("Error running code: {err}");
             ExitCode::FAILURE
         }
     }
 }
 
 fn read_file(file_path: &str) -> Result<String, String> {
-    eprintln!("Reading file: {}", file_path);
+    eprintln!("Reading file: {file_path}");
     match fs::metadata(file_path) {
         Ok(metadata) => {
             if !metadata.is_file() {

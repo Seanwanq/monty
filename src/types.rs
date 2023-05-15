@@ -99,7 +99,7 @@ impl Builtins {
             "print" => Ok(Self::Print),
             "range" => Ok(Self::Range),
             "len" => Ok(Self::Len),
-            _ => Err(format!("unknown builtin: {}", name).into()),
+            _ => Err(format!("unknown builtin: {name}").into()),
         }
     }
 }

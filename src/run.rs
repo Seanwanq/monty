@@ -35,7 +35,7 @@ impl Frame {
                 self.assign(*target, object)?;
             },
             Node::OpAssign { target, op, object } => {
-                self.op_assign(*target, op, &object)?;
+                self.op_assign(*target, op, object)?;
             },
             Node::For {
                 target,
@@ -54,11 +54,11 @@ impl Frame {
             Expr::Name(id) => {
                 if let Some(object) = self.namespace.get(*id) {
                     match object {
-                        Object::Undefined => Err(format!("name '{}' is not defined", id).into()),
+                        Object::Undefined => Err(format!("name '{id}' is not defined").into()),
                         _ => Ok(Cow::Borrowed(object)),
                     }
                 } else {
-                    Err(format!("name '{}' is not defined", id).into())
+                    Err(format!("name '{id}' is not defined").into())
                 }
             }
             Expr::Call { func, args } => self.call_function(func, args),
@@ -206,10 +206,7 @@ impl Frame {
         let right_object = self.execute_expr(right)?;
         let op_object: Option<bool> = match op {
             CmpOperator::Eq => left_object.as_ref().eq(&right_object),
-            CmpOperator::NotEq => match left_object.as_ref().eq(&right_object) {
-                Some(object) => Some(!object),
-                None => None,
-            },
+            CmpOperator::NotEq => left_object.as_ref().eq(&right_object).map(|object| !object),
             CmpOperator::Gt => Some(left_object.gt(&right_object)),
             CmpOperator::GtE => Some(left_object.ge(&right_object)),
             CmpOperator::Lt => Some(left_object.lt(&right_object)),

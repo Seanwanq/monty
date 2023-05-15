@@ -37,7 +37,7 @@ impl fmt::Display for Object {
 }
 
 fn format_iterable(start: char, end: char, items: &[Object], f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", start)?;
+    write!(f, "{start}")?;
     let mut items_iter = items.iter();
     if let Some(first) = items_iter.next() {
         write!(f, "{first}")?;
@@ -45,7 +45,7 @@ fn format_iterable(start: char, end: char, items: &[Object], f: &mut fmt::Format
             write!(f, ", {item}")?;
         }
     }
-    write!(f, "{}", end)
+    write!(f, "{end}")
 }
 
 impl PartialOrd for Object {
@@ -83,7 +83,7 @@ impl Object {
         match (self, other) {
             (Self::Int(v1), Self::Int(v2)) => Some(Self::Int(v1 + v2)),
             (Self::Str(v1), Self::Str(v2)) => {
-                Some(Self::Str(format!("{}{}", v1, v2)))
+                Some(Self::Str(format!("{v1}{v2}")))
             }
             (Self::List(v1), Self::List(v2)) => {
                 let mut v = v1.clone();
@@ -179,7 +179,7 @@ fn vecs_equal(v1: &[Object], v2: &[Object]) -> Option<bool> {
     if v1.len() != v2.len() {
         Some(false)
     } else {
-        for (v1, v2) in v1.into_iter().zip(v2.into_iter()) {
+        for (v1, v2) in v1.iter().zip(v2.iter()) {
             if let Some(v) = v1.eq(v2) {
                 if !v {
                     return Some(false);
