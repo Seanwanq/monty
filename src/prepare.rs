@@ -8,8 +8,6 @@ use crate::object::Object;
 use crate::parse_error::{ParseError, ParseResult};
 use crate::types::{Builtins, Expr, ExprLoc, Function, Identifier, Kwarg, Node};
 
-/// TODO:
-/// * check variables exist before pre-assigning
 pub(crate) fn prepare<'c>(nodes: Vec<Node<'c>>, input_names: &[&str]) -> ParseResult<'c, (Vec<Object>, Vec<Node<'c>>)> {
     let mut p = Prepare::new(nodes.len(), input_names, true);
     let new_nodes = p.prepare_nodes(nodes)?;
@@ -19,7 +17,12 @@ pub(crate) fn prepare<'c>(nodes: Vec<Node<'c>>, input_names: &[&str]) -> ParseRe
 struct Prepare {
     name_map: AHashMap<String, usize>,
     namespace: Vec<Object>,
+    /// consts is a vec of bools matching `namespace`, where true means the value has not yet been changed,
+    /// and therefore the object can be substituted into expressions as a constant
     consts: Vec<bool>,
+    /// whether we've hit a loop yet, once true we can't use `consts` since the value could be changed later in the loop
+    /// body
+    hit_loop: bool,
     /// Root frame is the outer frame of the script, e.g. the "global" scope
     root_frame: bool,
 }
@@ -36,6 +39,7 @@ impl Prepare {
             name_map,
             namespace,
             consts,
+            hit_loop: false,
             root_frame,
         }
     }
@@ -83,12 +87,15 @@ impl Prepare {
                     iter,
                     body,
                     or_else,
-                } => new_nodes.push(Node::For {
-                    target: self.get_id(target).0,
-                    iter: self.prepare_expression(iter)?,
-                    body: self.prepare_nodes(body)?,
-                    or_else: self.prepare_nodes(or_else)?,
-                }),
+                } => {
+                    self.hit_loop = true;
+                    new_nodes.push(Node::For {
+                        target: self.get_id(target).0,
+                        iter: self.prepare_expression(iter)?,
+                        body: self.prepare_nodes(body)?,
+                        or_else: self.prepare_nodes(or_else)?,
+                    })
+                }
                 Node::If { test, body, or_else } => {
                     let test = self.prepare_expression(test)?;
                     let body = self.prepare_nodes(body)?;
@@ -152,7 +159,9 @@ impl Prepare {
             }
         };
 
-        if can_be_const(&expr, &self.consts) {
+        let consts: Option<&[bool]> = if self.hit_loop { None } else { Some(&self.consts) };
+
+        if can_be_const(&expr, consts) {
             let evaluate = Evaluator::new(&self.namespace);
             let tmp_expr_loc = ExprLoc { position, expr };
             let object = evaluate.evaluate(&tmp_expr_loc)?;
@@ -201,10 +210,13 @@ impl Prepare {
 }
 
 /// whether an expression can be evaluated to a constant
-fn can_be_const(expr: &Expr, consts: &[bool]) -> bool {
+fn can_be_const(expr: &Expr, consts: Option<&[bool]>) -> bool {
     match expr {
         Expr::Constant(_) => true,
-        Expr::Name(ident) => *consts.get(ident.id).unwrap_or(&false),
+        Expr::Name(ident) => match consts {
+            Some(c) => *c.get(ident.id).unwrap_or(&false),
+            None => false,
+        },
         Expr::Call { func, args, kwargs } => {
             !func.side_effects()
                 && args.iter().all(|arg| can_be_const(&arg.expr, consts))

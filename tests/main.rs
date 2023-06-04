@@ -22,13 +22,22 @@ macro_rules! execute_ok_tests {
 execute_ok_tests! {
     add_ints: "1 + 1", "Int(2)";
     add_strs: "'a' + 'b'", r#"Str("ab")"#;
-    for_loop_str_append: r#"
+    // language=Python
+    for_loop_str_append_assign_op: "
 v = ''
 for i in range(1000):
     if i % 13 == 0:
         v += 'x'
 len(v)
-"#, "Int(77)";
+", "Int(77)";
+    // language=Python
+    for_loop_str_append_assign: "
+v = ''
+for i in range(1000):
+    if i % 13 == 0:
+        v = v + 'x'
+len(v)
+", "Int(77)";
 }
 
 macro_rules! parse_error_tests {

@@ -79,13 +79,13 @@ impl<'c> RunFrame<'c> {
         }
     }
 
-    fn assign(&mut self, target: &Identifier<'c>, object: &ExprLoc<'c>) -> RunResult<'c, ()> {
-        self.namespace[target.id] = self.execute_expr(object)?.into_owned();
+    fn assign(&mut self, target: &Identifier<'c>, expr: &ExprLoc<'c>) -> RunResult<'c, ()> {
+        self.namespace[target.id] = self.execute_expr(expr)?.into_owned();
         Ok(())
     }
 
-    fn op_assign(&mut self, target: &Identifier<'c>, op: &Operator, object: &ExprLoc<'c>) -> RunResult<'c, ()> {
-        let right_object = self.execute_expr(object)?.into_owned();
+    fn op_assign(&mut self, target: &Identifier<'c>, op: &Operator, expr: &ExprLoc<'c>) -> RunResult<'c, ()> {
+        let right_object = self.execute_expr(expr)?.into_owned();
         if let Some(target_object) = self.namespace.get_mut(target.id) {
             let r = match op {
                 Operator::Add => target_object.add_mut(right_object),
@@ -95,7 +95,7 @@ impl<'c> RunFrame<'c> {
                 let target_type = target_object.to_string();
                 let right_type = right.to_string();
                 let e = exc!(Exception::TypeError; "unsupported operand type(s) for {op}: '{target_type}' and '{right_type}'");
-                Err(e.with_frame(self.stack_frame(&object.position)).into())
+                Err(e.with_frame(self.stack_frame(&expr.position)).into())
             } else {
                 Ok(())
             }
