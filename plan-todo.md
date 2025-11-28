@@ -17,3 +17,4 @@ Others:
 * replace varied methods for checking argument counts
 * remove `Clone` from `Object` and associated cleanup
 * use strum for enum strings
+* add tests for reference count
