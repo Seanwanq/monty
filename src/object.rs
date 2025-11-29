@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
-use std::fmt;
 use std::hash::{Hash, Hasher};
+
+use strum::Display;
 
 use crate::exceptions::{exc_err_fmt, ExcType, SimpleException};
 use crate::heap::HeapData;
@@ -438,7 +439,12 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone)]
+/// Attribute names for method calls on container types (list, dict).
+///
+/// Uses strum `Display` derive with lowercase serialization.
+/// The `Other(String)` variant is a fallback for unknown/dynamic attribute names.
+#[derive(Debug, Clone, Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum Attr {
     Append,
     Insert,
@@ -447,23 +453,9 @@ pub enum Attr {
     Values,
     Items,
     Pop,
+    /// Fallback for unknown attribute names. Displays as the contained string.
+    #[strum(default)]
     Other(String),
-}
-
-impl fmt::Display for Attr {
-    // TODO replace with a strum
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Append => write!(f, "append"),
-            Self::Insert => write!(f, "insert"),
-            Self::Get => write!(f, "get"),
-            Self::Keys => write!(f, "keys"),
-            Self::Values => write!(f, "values"),
-            Self::Items => write!(f, "items"),
-            Self::Pop => write!(f, "pop"),
-            Self::Other(s) => write!(f, "{s}"),
-        }
-    }
 }
 
 impl From<String> for Attr {

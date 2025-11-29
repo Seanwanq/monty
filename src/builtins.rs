@@ -1,5 +1,4 @@
-use std::fmt;
-use std::str::FromStr;
+use strum::{AsRefStr, Display, EnumString};
 
 use crate::exceptions::{check_arg_count, exc_err_fmt, internal_err, ExcType, InternalRunError};
 use crate::heap::{Heap, HeapData};
@@ -7,8 +6,12 @@ use crate::object::Object;
 use crate::run::RunResult;
 use crate::values::PyValue;
 
-/// Builtins enumerates every interpreter-native Python builtin Monty currently supports.
-#[derive(Debug, Clone, Copy)]
+/// Enumerates every interpreter-native Python builtin Monty currently supports.
+///
+/// Uses strum derives for automatic `Display`, `FromStr`, and `AsRef<str>` implementations.
+/// All variants serialize to lowercase (e.g., `Print` -> "print").
+#[derive(Debug, Clone, Copy, Display, EnumString, AsRefStr)]
+#[strum(serialize_all = "lowercase")]
 pub(crate) enum Builtins {
     Print,
     Len,
@@ -17,31 +20,6 @@ pub(crate) enum Builtins {
     Id,
     Range,
     Hash,
-}
-
-/// Parses a builtin function from its string representation.
-///
-/// Returns `Ok(Builtins)` if the name matches a known builtin function,
-/// or `Err(())` if the name is not recognized.
-///
-/// # Examples
-/// - `"print".parse::<Builtins>()` returns `Ok(Builtins::Print)`
-/// - `"unknown".parse::<Builtins>()` returns `Err(())`
-impl FromStr for Builtins {
-    type Err = ();
-
-    fn from_str(name: &str) -> Result<Self, Self::Err> {
-        match name {
-            "print" => Ok(Self::Print),
-            "len" => Ok(Self::Len),
-            "str" => Ok(Self::Str),
-            "repr" => Ok(Self::Repr),
-            "id" => Ok(Self::Id),
-            "range" => Ok(Self::Range),
-            "hash" => Ok(Self::Hash),
-            _ => Err(()),
-        }
-    }
 }
 
 impl Builtins {
@@ -99,24 +77,5 @@ impl Builtins {
                 }
             }
         }
-    }
-
-    /// Returns the canonical Python spelling of the builtin.
-    pub(crate) fn name(self) -> &'static str {
-        match self {
-            Self::Print => "print",
-            Self::Len => "len",
-            Self::Str => "str",
-            Self::Repr => "repr",
-            Self::Id => "id",
-            Self::Range => "range",
-            Self::Hash => "hash",
-        }
-    }
-}
-
-impl fmt::Display for Builtins {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
     }
 }

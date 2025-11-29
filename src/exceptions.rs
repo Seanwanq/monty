@@ -2,7 +2,8 @@ use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::str::FromStr;
+
+use strum::{Display, EnumString, IntoStaticStr};
 
 use crate::expressions::ExprLoc;
 use crate::heap::HeapData;
@@ -14,8 +15,12 @@ use crate::values::str::string_repr;
 use crate::values::PyValue;
 use crate::Heap;
 
+/// Python exception types supported by the interpreter.
+///
+/// Uses strum derives for automatic `Display`, `FromStr`, and `Into<&'static str>` implementations.
+/// The string representation matches the variant name exactly (e.g., `ValueError` -> "ValueError").
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Display, EnumString, IntoStaticStr)]
 pub enum ExcType {
     ValueError,
     TypeError,
@@ -24,25 +29,7 @@ pub enum ExcType {
     KeyError,
 }
 
-impl fmt::Display for ExcType {
-    // TODO replace with a strum
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.str())
-    }
-}
-
 impl ExcType {
-    // TODO replace with a strum
-    fn str(self) -> &'static str {
-        match self {
-            Self::ValueError => "ValueError",
-            Self::TypeError => "TypeError",
-            Self::NameError => "NameError",
-            Self::AttributeError => "AttributeError",
-            Self::KeyError => "KeyError",
-        }
-    }
-
     #[must_use]
     pub fn attribute_error<'c>(type_str: &str, attr: &Attr) -> RunError<'c> {
         exc_fmt!(Self::AttributeError; "'{type_str}' object has no attribute '{attr}'").into()
@@ -159,29 +146,6 @@ pub fn check_arg_count<'c, const N: usize>(name: &str, args: Vec<Object>) -> Res
     }
 }
 
-/// Parses an exception type from its string representation.
-///
-/// Returns `Ok(ExcType)` if the name matches a known exception type,
-/// or `Err(())` if the name is not recognized.
-///
-/// # Examples
-/// - `"ValueError".parse::<ExcType>()` returns `Ok(ExcType::ValueError)`
-/// - `"UnknownError".parse::<ExcType>()` returns `Err(())`
-impl FromStr for ExcType {
-    type Err = ();
-
-    fn from_str(name: &str) -> Result<Self, Self::Err> {
-        match name {
-            "ValueError" => Ok(Self::ValueError),
-            "TypeError" => Ok(Self::TypeError),
-            "NameError" => Ok(Self::NameError),
-            "AttributeError" => Ok(Self::AttributeError),
-            "KeyError" => Ok(Self::KeyError),
-            _ => Err(()),
-        }
-    }
-}
-
 /// Simple lightweight representation of an exception.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleException {
@@ -191,7 +155,8 @@ pub struct SimpleException {
 
 impl fmt::Display for SimpleException {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}(", self.exc_type.str())?;
+        let type_str: &'static str = self.exc_type.into();
+        write!(f, "{type_str}(")?;
 
         if let Some(arg) = &self.arg {
             write!(f, "{}", string_repr(arg))?;
@@ -209,7 +174,7 @@ impl SimpleException {
     }
 
     pub(crate) fn type_str(&self) -> &'static str {
-        self.exc_type.str()
+        self.exc_type.into()
     }
 
     /// Computes a hash for this exception based on its type and argument.

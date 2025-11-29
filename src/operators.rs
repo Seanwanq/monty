@@ -1,45 +1,43 @@
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq)]
+use strum::Display;
+
+/// Binary operators for arithmetic, bitwise, and boolean operations.
+///
+/// Uses strum `Display` derive with per-variant serialization for operator symbols.
+#[derive(Clone, Debug, PartialEq, Display)]
 pub(crate) enum Operator {
+    #[strum(serialize = "+")]
     Add,
+    #[strum(serialize = "-")]
     Sub,
+    #[strum(serialize = "*")]
     Mult,
+    #[strum(serialize = "@")]
     MatMult,
+    #[strum(serialize = "/")]
     Div,
+    #[strum(serialize = "%")]
     Mod,
+    #[strum(serialize = "**")]
     Pow,
+    #[strum(serialize = "<<")]
     LShift,
+    #[strum(serialize = ">>")]
     RShift,
+    #[strum(serialize = "|")]
     BitOr,
+    #[strum(serialize = "^")]
     BitXor,
+    #[strum(serialize = "&")]
     BitAnd,
+    #[strum(serialize = "//")]
     FloorDiv,
     // bool operators
+    #[strum(serialize = "and")]
     And,
+    #[strum(serialize = "or")]
     Or,
-}
-
-impl fmt::Display for Operator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Add => write!(f, "+"),
-            Self::Sub => write!(f, "-"),
-            Self::Mult => write!(f, "*"),
-            Self::MatMult => write!(f, "@"),
-            Self::Div => write!(f, "/"),
-            Self::Mod => write!(f, "%"),
-            Self::Pow => write!(f, "**"),
-            Self::LShift => write!(f, "<<"),
-            Self::RShift => write!(f, ">>"),
-            Self::BitOr => write!(f, "|"),
-            Self::BitXor => write!(f, "^"),
-            Self::BitAnd => write!(f, "&"),
-            Self::FloorDiv => write!(f, "//"),
-            Self::And => write!(f, "and"),
-            Self::Or => write!(f, "or"),
-        }
-    }
 }
 
 /// Defined separately since these operators always return a bool
