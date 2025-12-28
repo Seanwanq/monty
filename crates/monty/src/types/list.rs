@@ -190,7 +190,7 @@ impl PyTrait for List {
         for obj in &mut self.0 {
             if let Value::Ref(id) = obj {
                 stack.push(*id);
-                #[cfg(feature = "dec-ref-check")]
+                #[cfg(feature = "ref-count-panic")]
                 obj.dec_ref_forget();
             }
         }

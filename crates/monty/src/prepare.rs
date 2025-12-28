@@ -25,8 +25,8 @@ pub struct PrepareResult {
     pub namespace_size: usize,
     /// Maps variable names to their indices in the namespace.
     /// Used for ref-count testing to look up variables by name.
-    /// Only available when the `ref-counting` feature is enabled.
-    #[cfg(feature = "ref-counting")]
+    /// Only available when the `ref-count-return` feature is enabled.
+    #[cfg(feature = "ref-count-return")]
     pub name_map: AHashMap<String, NamespaceId>,
     /// The prepared AST nodes with all names resolved to namespace indices.
     pub nodes: Vec<Node>,
@@ -63,7 +63,7 @@ pub(crate) fn prepare(
 
     Ok(PrepareResult {
         namespace_size: p.namespace_size,
-        #[cfg(feature = "ref-counting")]
+        #[cfg(feature = "ref-count-return")]
         name_map: p.name_map,
         nodes: prepared_nodes,
         interner,

@@ -18,8 +18,13 @@ strum = { version = "0.25", features = ["derive"] }
 hashbrown = "0.16.1"
 
 [features]
-ref-counting = []
-dec-ref-check = []
+# ref-count-return changes behavior to return information on reference counts to check they're correct
+# should be used for testing only
+ref-count-return = []
+# ref-count-panic enables a Drop implementation on Value which catches heap allocated values that are dropped
+# without being dereferenced.
+# should be used for testing only
+ref-count-panic = []
 
 [dev-dependencies]
 pyo3 = { version = "0.27.2", features = ["auto-initialize"] }

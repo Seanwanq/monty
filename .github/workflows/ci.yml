@@ -52,14 +52,14 @@ jobs:
         # don't use .venv python python in CI
       - run: rm .cargo/config.toml
 
-      - name: Test without ref-counting feature or dec-ref-check
+      - name: Test without ref-count-return feature or ref-count-panic
         run: cargo test --workspace
 
-      - name: Test with ref-counting feature
-        run: cargo test --workspace --features ref-counting
+      - name: Test with ref-count-return feature
+        run: cargo test --workspace --features ref-count-return
 
-      - name: Test with dec-ref-check feature
-        run: cargo test --workspace --features dec-ref-check
+      - name: Test with ref-count-panic feature
+        run: cargo test --workspace --features ref-count-panic
 
   bench:
     runs-on: ubuntu-latest

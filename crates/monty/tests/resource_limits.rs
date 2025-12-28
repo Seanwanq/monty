@@ -172,7 +172,7 @@ len(result)
 
 #[test]
 #[cfg_attr(
-    feature = "dec-ref-check",
+    feature = "ref-count-panic",
     ignore = "resource exhaustion doesn't guarantee heap state consistency"
 )]
 fn executor_iter_resource_limit_on_resume() {
@@ -206,7 +206,7 @@ fn executor_iter_resource_limit_on_resume() {
 
 #[test]
 #[cfg_attr(
-    feature = "dec-ref-check",
+    feature = "ref-count-panic",
     ignore = "resource exhaustion doesn't guarantee heap state consistency"
 )]
 fn executor_iter_resource_limit_before_function_call() {
@@ -283,7 +283,7 @@ fn executor_iter_resource_limit_multiple_function_calls() {
 /// the memory limit.
 #[test]
 #[cfg_attr(
-    feature = "dec-ref-check",
+    feature = "ref-count-panic",
     ignore = "resource exhaustion doesn't guarantee heap state consistency"
 )]
 fn recursion_respects_memory_limit() {
@@ -317,7 +317,7 @@ recurse(1000)
 /// Test that recursion depth limit returns an error.
 #[test]
 #[cfg_attr(
-    feature = "dec-ref-check",
+    feature = "ref-count-panic",
     ignore = "resource exhaustion doesn't guarantee heap state consistency"
 )]
 fn recursion_depth_limit_exceeded() {

@@ -45,12 +45,12 @@ lint: lint-rs lint-py ## Lint the code with ruff and clippy
 format-lint-rs: format-rs lint-rs ## Format and lint Rust code with fmt and clippy
 
 .PHONY: test
-test: ## Run tests with dec-ref-check enabled
-	cargo test --workspace --features dec-ref-check
+test: ## Run tests with ref-count-panic enabled
+	cargo test --workspace --features ref-count-panic
 
-.PHONY: test-ref-counting
-test-ref-counting: ## Run tests with ref-counting enabled
-	cargo test --workspace --features ref-counting
+.PHONY: test-ref-count-return
+test-ref-count-return: ## Run tests with ref-count-return enabled
+	cargo test --workspace --features ref-count-return
 
 .PHONY: complete-tests
 complete-tests: ## Fill in incomplete test expectations using CPython
@@ -66,4 +66,4 @@ profile: ## Profile the code with pprof and generate flamegraphs
 	uv run scripts/flamegraph_to_text.py
 
 .PHONY: all
-all: lint test test-ref-counting
+all: lint test test-ref-count-return

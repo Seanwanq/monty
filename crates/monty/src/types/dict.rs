@@ -444,12 +444,12 @@ impl PyTrait for Dict {
         for entry in &mut self.entries {
             if let Value::Ref(id) = &entry.key {
                 stack.push(*id);
-                #[cfg(feature = "dec-ref-check")]
+                #[cfg(feature = "ref-count-panic")]
                 entry.key.dec_ref_forget();
             }
             if let Value::Ref(id) = &entry.value {
                 stack.push(*id);
-                #[cfg(feature = "dec-ref-check")]
+                #[cfg(feature = "ref-count-panic")]
                 entry.value.dec_ref_forget();
             }
         }

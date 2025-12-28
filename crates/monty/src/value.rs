@@ -59,17 +59,17 @@ pub enum Value {
     Ref(HeapId),
 
     /// Sentinel value indicating this Value was properly cleaned up via `drop_with_heap`.
-    /// Only exists when `dec-ref-check` feature is enabled. Used to verify reference counting
+    /// Only exists when `ref-count-panic` feature is enabled. Used to verify reference counting
     /// correctness - if a `Ref` variant is dropped without calling `drop_with_heap`, the
     /// Drop impl will panic.
-    #[cfg(feature = "dec-ref-check")]
+    #[cfg(feature = "ref-count-panic")]
     Dereferenced,
 }
 
 /// Drop implementation that panics if a `Ref` variant is dropped without calling `drop_with_heap`.
 /// This helps catch reference counting bugs during development/testing.
-/// Only enabled when the `dec-ref-check` feature is active.
-#[cfg(feature = "dec-ref-check")]
+/// Only enabled when the `ref-count-panic` feature is active.
+#[cfg(feature = "ref-count-panic")]
 impl Drop for Value {
     fn drop(&mut self) {
         if let Value::Ref(id) = self {
@@ -103,7 +103,7 @@ impl PyTrait for Value {
                 Some(heap) => heap.get(*id).py_type(Some(heap)),
                 None => Type::Unknown,
             },
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot access Dereferenced object"),
         }
     }
@@ -222,7 +222,7 @@ impl PyTrait for Value {
         if let Value::Ref(id) = self {
             stack.push(*id);
             // Mark as Dereferenced to prevent Drop panic
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             self.dec_ref_forget();
         }
     }
@@ -242,7 +242,7 @@ impl PyTrait for Value {
             Self::InternString(string_id) => !interns.get_str(*string_id).is_empty(),
             Self::InternBytes(bytes_id) => !interns.get_bytes(*bytes_id).is_empty(),
             Self::Ref(id) => heap.get(*id).py_bool(heap, interns),
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot access Dereferenced object"),
         }
     }
@@ -295,7 +295,7 @@ impl PyTrait for Value {
                     result
                 }
             }
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot access Dereferenced object"),
         }
     }
@@ -865,7 +865,7 @@ impl Value {
             Self::Builtin(c) => builtin_value_id(*c),
             Self::Function(f_id) => function_value_id(*f_id),
             Self::ExtFunction(f_id) => ext_function_value_id(*f_id),
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot get id of Dereferenced object"),
         }
     }
@@ -924,7 +924,7 @@ impl Value {
             Self::Function(f_id) => f_id.hash(&mut hasher),
             Self::ExtFunction(f_id) => f_id.hash(&mut hasher),
             Self::InternString(_) | Self::InternBytes(_) | Self::Ref(_) => unreachable!("covered above"),
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot access Dereferenced object"),
         }
         Some(hasher.finish())
@@ -990,12 +990,12 @@ impl Value {
     /// This method MUST be called before overwriting a namespace slot or discarding
     /// a value to prevent memory leaks.
     ///
-    /// With `dec-ref-check` enabled, `Ref` variants are replaced with `Dereferenced` and
+    /// With `ref-count-panic` enabled, `Ref` variants are replaced with `Dereferenced` and
     /// the original is forgotten to prevent the Drop impl from panicking. Non-Ref variants
     /// are left unchanged since they don't trigger the Drop panic.
     #[allow(unused_mut)]
     pub fn drop_with_heap(mut self, heap: &mut Heap<impl ResourceTracker>) {
-        #[cfg(feature = "dec-ref-check")]
+        #[cfg(feature = "ref-count-panic")]
         {
             let old = std::mem::replace(&mut self, Value::Dereferenced);
             if let Self::Ref(id) = &old {
@@ -1003,7 +1003,7 @@ impl Value {
                 std::mem::forget(old);
             }
         }
-        #[cfg(not(feature = "dec-ref-check"))]
+        #[cfg(not(feature = "ref-count-panic"))]
         if let Self::Ref(id) = self {
             heap.dec_ref(id);
         }
@@ -1016,7 +1016,7 @@ impl Value {
     pub fn clone_immediate(&self) -> Self {
         match self {
             Self::Ref(_) => panic!("Ref clones must go through clone_with_heap to maintain refcounts"),
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot clone Dereferenced object"),
             _ => self.copy_for_extend(),
         }
@@ -1049,12 +1049,12 @@ impl Value {
             Self::InternString(s) => Self::InternString(*s),
             Self::InternBytes(b) => Self::InternBytes(*b),
             Self::Ref(id) => Self::Ref(*id), // Caller must increment refcount!
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Self::Dereferenced => panic!("Cannot copy Dereferenced object"),
         }
     }
 
-    #[cfg(feature = "dec-ref-check")]
+    #[cfg(feature = "ref-count-panic")]
     pub fn into_exc(self) -> SimpleException {
         if let Self::Exc(exc) = &self {
             // SAFETY: We're reading the exc out and then forgetting the value shell.
@@ -1071,7 +1071,7 @@ impl Value {
         }
     }
 
-    #[cfg(not(feature = "dec-ref-check"))]
+    #[cfg(not(feature = "ref-count-panic"))]
     pub fn into_exc(self) -> SimpleException {
         if let Self::Exc(e) = self {
             e
@@ -1083,7 +1083,7 @@ impl Value {
     /// Mark as Dereferenced to prevent Drop panic
     ///
     /// This should be called from `py_dec_ref_ids` methods only
-    #[cfg(feature = "dec-ref-check")]
+    #[cfg(feature = "ref-count-panic")]
     pub fn dec_ref_forget(&mut self) {
         let old = std::mem::replace(self, Value::Dereferenced);
         std::mem::forget(old);

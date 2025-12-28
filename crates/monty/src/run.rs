@@ -269,7 +269,7 @@ impl<T: ResourceTracker> Snapshot<T> {
 pub struct Executor {
     namespace_size: usize,
     /// Maps variable names to their indices in the namespace. Used for ref-count testing.
-    #[cfg(feature = "ref-counting")]
+    #[cfg(feature = "ref-count-return")]
     name_map: ahash::AHashMap<String, crate::namespace::NamespaceId>,
     nodes: Vec<Node>,
     /// Interned strings used for looking up names and filenames during execution.
@@ -312,7 +312,7 @@ impl Executor {
 
         Ok(Self {
             namespace_size: prepared.namespace_size,
-            #[cfg(feature = "ref-counting")]
+            #[cfg(feature = "ref-count-return")]
             name_map: prepared.name_map,
             nodes: prepared.nodes,
             interns: Interns::new(prepared.interner, prepared.functions, external_functions),
@@ -408,8 +408,8 @@ impl Executor {
         let mut frame = RunFrame::module_frame(&self.interns, &mut snapshot_tracker, print);
         let frame_exit = frame.execute(&mut namespaces, &mut heap, &self.nodes);
 
-        // Clean up the global namespace before returning (only needed with dec-ref-check)
-        #[cfg(feature = "dec-ref-check")]
+        // Clean up the global namespace before returning (only needed with ref-count-panic)
+        #[cfg(feature = "ref-count-panic")]
         namespaces.drop_global_with_heap(&mut heap);
 
         frame_exit_to_object(frame_exit?, &mut heap, &self.interns)
@@ -427,8 +427,8 @@ impl Executor {
     /// For strict matching validation, compare unique_refs_count with heap_entry_count.
     /// If they're equal, all heap values are accounted for by named variables.
     ///
-    /// Only available when the `ref-counting` feature is enabled.
-    #[cfg(feature = "ref-counting")]
+    /// Only available when the `ref-count-return` feature is enabled.
+    #[cfg(feature = "ref-count-return")]
     pub fn run_ref_counts(&self, inputs: Vec<PyObject>) -> Result<RefCountOutput, PythonException> {
         use crate::value::Value;
         use std::collections::HashSet;
@@ -525,8 +525,8 @@ impl Executor {
         let exit = match frame.execute(&mut namespaces, &mut heap, &self.nodes) {
             Ok(exit) => exit,
             Err(e) => {
-                // Clean up before propagating error (only needed with dec-ref-check)
-                #[cfg(feature = "dec-ref-check")]
+                // Clean up before propagating error (only needed with ref-count-panic)
+                #[cfg(feature = "ref-count-panic")]
                 namespaces.drop_global_with_heap(&mut heap);
                 return Err(e);
             }
@@ -534,15 +534,15 @@ impl Executor {
 
         match exit {
             None => {
-                // Clean up the global namespace before returning (only needed with dec-ref-check)
-                #[cfg(feature = "dec-ref-check")]
+                // Clean up the global namespace before returning (only needed with ref-count-panic)
+                #[cfg(feature = "ref-count-panic")]
                 namespaces.drop_global_with_heap(&mut heap);
 
                 Ok(RunProgress::Complete(PyObject::None))
             }
             Some(FrameExit::Return(return_value)) => {
-                // Clean up the global namespace before returning (only needed with dec-ref-check)
-                #[cfg(feature = "dec-ref-check")]
+                // Clean up the global namespace before returning (only needed with ref-count-panic)
+                #[cfg(feature = "ref-count-panic")]
                 namespaces.drop_global_with_heap(&mut heap);
 
                 let py_object = PyObject::new(return_value, &mut heap, &self.interns);
@@ -580,7 +580,7 @@ fn frame_exit_to_object(
     }
 }
 
-#[cfg(feature = "ref-counting")]
+#[cfg(feature = "ref-count-return")]
 #[derive(Debug)]
 pub struct RefCountOutput {
     pub py_object: PyObject,

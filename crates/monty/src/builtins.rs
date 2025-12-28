@@ -142,7 +142,7 @@ impl BuiltinsFunctions {
                 // This is an acceptable trade-off: small leak for heap values passed to id(),
                 // but correct semantics for value identity.
                 if matches!(value, Value::Ref(_)) {
-                    #[cfg(feature = "dec-ref-check")]
+                    #[cfg(feature = "ref-count-panic")]
                     std::mem::forget(value);
                 } else {
                     value.drop_with_heap(heap);

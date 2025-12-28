@@ -72,11 +72,11 @@ Commands:
 # Build the project
 cargo build
 
-# Run tests (this is the best way to run all tests as it enables the dec-ref-check feature)
+# Run tests (this is the best way to run all tests as it enables the ref-count-panic feature)
 make test
 
 # Run a specific test
-cargo test --features dec-ref-check str__ops
+cargo test --features ref-count-panic str__ops
 
 # Run the interpreter on a Python file
 cargo run -- <file.py>

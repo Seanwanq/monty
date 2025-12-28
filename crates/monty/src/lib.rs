@@ -31,5 +31,5 @@ pub use crate::object::{InvalidInputError, PyObject};
 pub use crate::resource::{LimitedTracker, NoLimitTracker, ResourceLimits, ResourceTracker};
 pub use crate::run::{Executor, RunProgress, RunSnapshot, Snapshot};
 
-#[cfg(feature = "ref-counting")]
+#[cfg(feature = "ref-count-return")]
 pub use crate::run::RefCountOutput;

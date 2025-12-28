@@ -122,15 +122,15 @@ impl Namespaces {
     /// Clears the return values and resets the pointer.
     ///
     /// This should be used between expressions to return values are only used in the current expression.
-    #[cfg(not(feature = "dec-ref-check"))]
+    #[cfg(not(feature = "ref-count-panic"))]
     pub fn clear_return_values(&mut self, _heap: &mut Heap<impl ResourceTracker>) {
         self.return_values.clear();
         self.next_return_value = 0;
     }
 
-    /// if `dec-ref-check` is enabled, drop reach member of self.return_values properly before clearing to avoid panic
+    /// if `ref-count-panic` is enabled, drop reach member of self.return_values properly before clearing to avoid panic
     /// on drop.
-    #[cfg(feature = "dec-ref-check")]
+    #[cfg(feature = "ref-count-panic")]
     pub fn clear_return_values(&mut self, heap: &mut Heap<impl ResourceTracker>) {
         for value in &mut self.return_values {
             let v = std::mem::replace(value, Value::Dereferenced);
@@ -219,8 +219,8 @@ impl Namespaces {
     /// Call this before the namespaces is dropped to properly decrement reference counts
     /// for any `Value::Ref` entries in the global namespace and return values.
     ///
-    /// Only needed when `dec-ref-check` is enabled, since the Drop impl panics on unfreed Refs.
-    #[cfg(feature = "dec-ref-check")]
+    /// Only needed when `ref-count-panic` is enabled, since the Drop impl panics on unfreed Refs.
+    #[cfg(feature = "ref-count-panic")]
     pub fn drop_global_with_heap(&mut self, heap: &mut Heap<impl ResourceTracker>) {
         // Clean up global namespace
         let global = self.get_mut(GLOBAL_NS_IDX);
@@ -357,8 +357,8 @@ impl Namespaces {
     ///
     /// Consumes the namespaces since the namespace Vec is moved out.
     ///
-    /// Only available when the `ref-counting` feature is enabled.
-    #[cfg(feature = "ref-counting")]
+    /// Only available when the `ref-count-return` feature is enabled.
+    #[cfg(feature = "ref-count-return")]
     pub fn into_global(mut self) -> Namespace {
         self.stack.swap_remove(GLOBAL_NS_IDX.index())
     }

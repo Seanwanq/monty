@@ -558,7 +558,7 @@ impl<T: ResourceTracker> Heap<T> {
                 self.tracker.on_free(|| data.py_estimate_size());
             }
 
-            // Collect child IDs and mark Values as Dereferenced (when dec-ref-check enabled)
+            // Collect child IDs and mark Values as Dereferenced (when ref-count-panic enabled)
             if let Some(mut data) = value.data {
                 let mut child_ids = Vec::new();
                 data.py_dec_ref_ids(&mut child_ids);
@@ -727,11 +727,11 @@ impl<T: ResourceTracker> Heap<T> {
 
     /// Removes all values and resets the ID counter, used between executor runs.
     pub fn clear(&mut self) {
-        // When dec-ref-check is enabled, mark all contained Values as Dereferenced
+        // When ref-count-panic is enabled, mark all contained Values as Dereferenced
         // before clearing to prevent Drop panics. We use py_dec_ref_ids for this
         // since it handles the marking (we ignore the collected IDs since we're
         // clearing everything anyway).
-        #[cfg(feature = "dec-ref-check")]
+        #[cfg(feature = "ref-count-panic")]
         {
             let mut dummy_stack = Vec::new();
             for value in self.entries.iter_mut().flatten() {
@@ -1038,8 +1038,8 @@ impl<T: ResourceTracker> Heap<T> {
 
                 self.free_list.push(heap_id);
 
-                // Mark Values as Dereferenced when dec-ref-check is enabled
-                #[cfg(feature = "dec-ref-check")]
+                // Mark Values as Dereferenced when ref-count-panic is enabled
+                #[cfg(feature = "ref-count-panic")]
                 if let Some(mut data) = value.data {
                     data.py_dec_ref_ids(&mut Vec::new());
                 }
@@ -1124,8 +1124,8 @@ impl<T: ResourceTracker> Heap<T> {
 }
 
 /// Drop implementation for Heap that marks all contained Objects as Dereferenced
-/// before dropping to prevent panics when the `dec-ref-check` feature is enabled.
-#[cfg(feature = "dec-ref-check")]
+/// before dropping to prevent panics when the `ref-count-panic` feature is enabled.
+#[cfg(feature = "ref-count-panic")]
 impl<T: ResourceTracker> Drop for Heap<T> {
     fn drop(&mut self) {
         // Mark all contained Objects as Dereferenced before dropping.

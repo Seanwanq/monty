@@ -146,12 +146,12 @@ impl PyTrait for Tuple {
     /// Pushes all heap IDs contained in this tuple onto the stack.
     ///
     /// Called during garbage collection to decrement refcounts of nested values.
-    /// When `dec-ref-check` is enabled, also marks all Values as Dereferenced.
+    /// When `ref-count-panic` is enabled, also marks all Values as Dereferenced.
     fn py_dec_ref_ids(&mut self, stack: &mut Vec<HeapId>) {
         for obj in &mut self.0 {
             if let Value::Ref(id) = obj {
                 stack.push(*id);
-                #[cfg(feature = "dec-ref-check")]
+                #[cfg(feature = "ref-count-panic")]
                 obj.dec_ref_forget();
             }
         }

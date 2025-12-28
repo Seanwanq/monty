@@ -79,7 +79,7 @@ impl ExcType {
                         "exceptions can only be called with zero or one string argument",
                     )),
                 };
-                // Properly clean up the value using drop_with_heap which handles dec-ref-check
+                // Properly clean up the value using drop_with_heap which handles ref-count-panic
                 value.drop_with_heap(heap);
                 result
             }

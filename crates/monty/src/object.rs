@@ -315,7 +315,7 @@ impl PyObject {
                 result
             }
             Value::Builtin(Builtins::Type(t)) => Self::Type(*t),
-            #[cfg(feature = "dec-ref-check")]
+            #[cfg(feature = "ref-count-panic")]
             Value::Dereferenced => panic!("Dereferenced found while converting to PyObject"),
             _ => Self::Repr(object.py_repr(heap, interns).into_owned()),
         }

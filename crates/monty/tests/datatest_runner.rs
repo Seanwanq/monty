@@ -50,8 +50,8 @@ enum Expectation {
     /// Expect successful execution, check py_type() output
     ReturnType(String),
     /// Expect successful execution, check ref counts of named variables.
-    /// Only used when `ref-counting` feature is enabled; skipped otherwise.
-    RefCounts(#[cfg_attr(not(feature = "ref-counting"), allow(dead_code))] AHashMap<String, usize>),
+    /// Only used when `ref-count-return` feature is enabled; skipped otherwise.
+    RefCounts(#[cfg_attr(not(feature = "ref-count-return"), allow(dead_code))] AHashMap<String, usize>),
     /// Expect exception with full traceback comparison.
     /// The expected traceback string should match exactly between Monty and CPython.
     Traceback(String),
@@ -305,8 +305,8 @@ impl std::fmt::Display for TestFailure {
 fn try_run_test(path: &Path, code: &str, expectation: &Expectation) -> Result<(), TestFailure> {
     let test_name = path.strip_prefix("test_cases/").unwrap_or(path).display().to_string();
 
-    // Handle ref-counting tests separately since they need run_ref_counts()
-    #[cfg(feature = "ref-counting")]
+    // Handle ref-count-return tests separately since they need run_ref_counts()
+    #[cfg(feature = "ref-count-return")]
     if let Expectation::RefCounts(expected) = expectation {
         match Executor::new(code.to_owned(), &test_name, &[]) {
             Ok(ex) => {
@@ -397,7 +397,7 @@ fn try_run_test(path: &Path, code: &str, expectation: &Expectation) -> Result<()
                             });
                         }
                     }
-                    #[cfg(not(feature = "ref-counting"))]
+                    #[cfg(not(feature = "ref-count-return"))]
                     Expectation::RefCounts(_) => {
                         // Skip ref-count tests when feature is disabled
                     }
@@ -412,7 +412,7 @@ fn try_run_test(path: &Path, code: &str, expectation: &Expectation) -> Result<()
                             actual: "no exception raised".to_string(),
                         });
                     }
-                    #[cfg(feature = "ref-counting")]
+                    #[cfg(feature = "ref-count-return")]
                     Expectation::RefCounts(_) => unreachable!(),
                 },
                 Err(e) => {
@@ -489,7 +489,7 @@ fn try_run_iter_test(path: &Path, code: &str, expectation: &Expectation) -> Resu
     let test_name = path.strip_prefix("test_cases/").unwrap_or(path).display().to_string();
 
     // Ref-counting tests not supported in iter mode
-    #[cfg(feature = "ref-counting")]
+    #[cfg(feature = "ref-count-return")]
     if matches!(expectation, Expectation::RefCounts(_)) {
         return Err(TestFailure {
             test_name,
@@ -574,7 +574,7 @@ fn try_run_iter_test(path: &Path, code: &str, expectation: &Expectation) -> Resu
                     });
                 }
             }
-            #[cfg(not(feature = "ref-counting"))]
+            #[cfg(not(feature = "ref-count-return"))]
             Expectation::RefCounts(_) => {}
             Expectation::NoException => {}
             Expectation::Raise(expected) | Expectation::Traceback(expected) => {
@@ -585,7 +585,7 @@ fn try_run_iter_test(path: &Path, code: &str, expectation: &Expectation) -> Resu
                     actual: "no exception raised".to_string(),
                 });
             }
-            #[cfg(feature = "ref-counting")]
+            #[cfg(feature = "ref-count-return")]
             Expectation::RefCounts(_) => unreachable!(),
         },
         Err(e) => {

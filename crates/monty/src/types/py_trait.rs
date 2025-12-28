@@ -74,7 +74,7 @@ pub trait PyTrait {
     /// This is called during `dec_ref` to find nested heap references that
     /// need their refcounts decremented when this value is freed.
     ///
-    /// When the `dec-ref-check` feature is enabled, this method also marks all
+    /// When the `ref-count-panic` feature is enabled, this method also marks all
     /// contained `Value`s as `Dereferenced` to prevent Drop panics. This
     /// co-locates the cleanup logic with the reference collection logic.
     fn py_dec_ref_ids(&mut self, stack: &mut Vec<HeapId>);
