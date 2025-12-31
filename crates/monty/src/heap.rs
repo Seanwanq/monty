@@ -1,5 +1,4 @@
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashSet;
 use std::fmt::Write;
 use std::hash::{Hash, Hasher};
 use std::mem::discriminant;
@@ -1043,16 +1042,20 @@ impl<T: ResourceTracker> Heap<T> {
         F: FnOnce() -> I,
     {
         // Mark phase: collect all reachable IDs using BFS
-        let mut reachable: HashSet<HeapId> = HashSet::new();
+        // Use Vec<bool> instead of HashSet for O(1) operations without hashing overhead
+        let mut reachable: Vec<bool> = vec![false; self.entries.len()];
         let mut work_list: Vec<HeapId> = get_roots().collect();
 
         while let Some(id) = work_list.pop() {
-            if !reachable.insert(id) {
-                continue; // Already visited
+            let idx = id.index();
+            // Skip if out of bounds or already visited
+            if idx >= reachable.len() || reachable[idx] {
+                continue;
             }
+            reachable[idx] = true;
 
             // Add children to work list
-            if let Some(Some(entry)) = self.entries.get(id.index()) {
+            if let Some(Some(entry)) = self.entries.get(idx) {
                 if let Some(ref data) = entry.data {
                     self.collect_child_ids(data, &mut work_list);
                 }
@@ -1061,8 +1064,7 @@ impl<T: ResourceTracker> Heap<T> {
 
         // Sweep phase: free unreachable values
         for (id, value) in self.entries.iter_mut().enumerate() {
-            let heap_id = HeapId(id);
-            if reachable.contains(&heap_id) {
+            if reachable[id] {
                 continue;
             }
 
@@ -1073,7 +1075,7 @@ impl<T: ResourceTracker> Heap<T> {
                     self.tracker.on_free(|| data.py_estimate_size());
                 }
 
-                self.free_list.push(heap_id);
+                self.free_list.push(HeapId(id));
 
                 // Mark Values as Dereferenced when ref-count-panic is enabled
                 #[cfg(feature = "ref-count-panic")]

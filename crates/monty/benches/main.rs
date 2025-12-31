@@ -316,6 +316,22 @@ def add(a, b=2):
 add(a=1)
 ";
 
+// language=Python
+const LIST_APPEND_STR_CODE: &str = "
+a = []
+for i in range(100_000):
+    a.append(str(i))
+len(a)
+";
+
+// language=Python
+const LIST_APPEND_INT_CODE: &str = "
+a = []
+for i in range(100_000):
+    a.append(i)
+sum(a)
+";
+
 /// Benchmarks function call with keyword arguments using Monty interpreter
 fn func_call_kwargs_monty(bench: &mut Bencher) {
     let ex = Executor::new(FUNC_CALL_KWARGS_CODE.to_owned(), "test.py", &[]).unwrap();
@@ -361,6 +377,98 @@ fn func_call_kwargs_cpython(bench: &mut Bencher) {
     });
 }
 
+/// Benchmarks list append with str(i) conversion using Monty interpreter
+fn list_append_str_monty(bench: &mut Bencher) {
+    let ex = Executor::new(LIST_APPEND_STR_CODE.to_owned(), "test.py", &[]).unwrap();
+    let r = ex.run_no_limits(vec![]).unwrap();
+    let int_value: i64 = r.as_ref().try_into().unwrap();
+    assert_eq!(int_value, 100_000);
+
+    bench.iter(|| {
+        let r = ex.run_no_limits(vec![]).unwrap();
+        let int_value: i64 = r.as_ref().try_into().unwrap();
+        black_box(int_value);
+    });
+}
+
+/// Benchmarks list append with str(i) conversion using CPython
+fn list_append_str_cpython(bench: &mut Bencher) {
+    Python::attach(|py| {
+        let fun: Py<PyAny> = PyModule::from_code(
+            py,
+            // language=Python
+            c"def main():
+                a = []
+                for i in range(100_000):
+                    a.append(str(i))
+                return len(a)
+            ",
+            c"test.py",
+            c"main",
+        )
+        .unwrap()
+        .getattr("main")
+        .unwrap()
+        .into();
+
+        let r_py = fun.call0(py).unwrap();
+        let r: i64 = r_py.extract(py).unwrap();
+        assert_eq!(r, 100_000);
+
+        bench.iter(|| {
+            let r_py = fun.call0(py).unwrap();
+            let r: i64 = r_py.extract(py).unwrap();
+            black_box(r);
+        });
+    });
+}
+
+/// Benchmarks list append with int (no str conversion) using Monty interpreter
+fn list_append_int_monty(bench: &mut Bencher) {
+    let ex = Executor::new(LIST_APPEND_INT_CODE.to_owned(), "test.py", &[]).unwrap();
+    let r = ex.run_no_limits(vec![]).unwrap();
+    let int_value: i64 = r.as_ref().try_into().unwrap();
+    assert_eq!(int_value, 4_999_950_000);
+
+    bench.iter(|| {
+        let r = ex.run_no_limits(vec![]).unwrap();
+        let int_value: i64 = r.as_ref().try_into().unwrap();
+        black_box(int_value);
+    });
+}
+
+/// Benchmarks list append with int (no str conversion) using CPython
+fn list_append_int_cpython(bench: &mut Bencher) {
+    Python::attach(|py| {
+        let fun: Py<PyAny> = PyModule::from_code(
+            py,
+            // language=Python
+            c"def main():
+                a = []
+                for i in range(100_000):
+                    a.append(i)
+                return sum(a)
+            ",
+            c"test.py",
+            c"main",
+        )
+        .unwrap()
+        .getattr("main")
+        .unwrap()
+        .into();
+
+        let r_py = fun.call0(py).unwrap();
+        let r: i64 = r_py.extract(py).unwrap();
+        assert_eq!(r, 4_999_950_000);
+
+        bench.iter(|| {
+            let r_py = fun.call0(py).unwrap();
+            let r: i64 = r_py.extract(py).unwrap();
+            black_box(r);
+        });
+    });
+}
+
 /// Configures all benchmark groups
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("add_two");
@@ -396,6 +504,16 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("func_call_kwargs");
     group.bench_function("monty", func_call_kwargs_monty);
     group.bench_function("cpython", func_call_kwargs_cpython);
+    group.finish();
+
+    let mut group = c.benchmark_group("list_append_str");
+    group.bench_function("monty", list_append_str_monty);
+    group.bench_function("cpython", list_append_str_cpython);
+    group.finish();
+
+    let mut group = c.benchmark_group("list_append_int");
+    group.bench_function("monty", list_append_int_monty);
+    group.bench_function("cpython", list_append_int_cpython);
     group.finish();
 }
 

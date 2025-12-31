@@ -64,6 +64,10 @@ complete-tests: ## Fill in incomplete test expectations using CPython
 bench: ## Run benchmarks
 	cargo bench -p monty --bench main
 
+.PHONY: dev-bench
+dev-bench: ## Run benchmarks to test with dev profile
+	cargo bench --profile dev -p monty --bench main -- --test
+
 .PHONY: profile
 profile: ## Profile the code with pprof and generate flamegraphs
 	cargo bench -p monty --bench main --profile profiling -- --profile-time=10

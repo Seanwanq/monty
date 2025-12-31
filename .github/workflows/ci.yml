@@ -49,7 +49,7 @@ jobs:
 
       - run: rustc --version --verbose
       - run: python3 -V
-        # don't use .venv python python in CI
+        # don't use .venv python in CI
       - run: rm .cargo/config.toml
 
       - name: Test without ref-count-return feature or ref-count-panic
@@ -72,10 +72,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-        # don't use .venv python python in CI
+        # don't use .venv python in CI
       - run: rm .cargo/config.toml
 
-      - run: cargo bench -p monty -- --test
+      - run: make dev-bench
 
   # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
   check:
