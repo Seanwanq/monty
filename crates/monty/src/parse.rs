@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt};
 
+use num_bigint::BigInt;
 use ruff_python_ast::{
     self as ast, BoolOp, CmpOp, ConversionFlag as RuffConversionFlag, ElifElseClause, Expr as AstExpr,
     InterpolatedStringElement, Keyword, Number, Operator as AstOperator, ParameterWithDefault, Stmt, UnaryOp,
@@ -849,10 +850,18 @@ impl<'a> Parser<'a> {
             AstExpr::NumberLiteral(ast::ExprNumberLiteral { value, range, .. }) => {
                 let position = self.convert_range(range);
                 let const_value = match value {
-                    Number::Int(i) => match i.as_i64() {
-                        Some(i) => Literal::Int(i),
-                        None => return Err(ParseError::not_implemented("integers larger than 64 bits", position)),
-                    },
+                    Number::Int(i) => {
+                        if let Some(i) = i.as_i64() {
+                            Literal::Int(i)
+                        } else {
+                            // Integer too large for i64, parse string representation as BigInt
+                            // Handles radix prefixes (0x, 0o, 0b) and underscores
+                            let bi = parse_int_literal(&i.to_string())
+                                .ok_or_else(|| ParseError::syntax(format!("invalid integer literal: {i}"), position))?;
+                            let long_int_id = self.interner.intern_long_int(bi);
+                            Literal::LongInt(long_int_id)
+                        }
+                    }
                     Number::Float(f) => Literal::Float(f),
                     Number::Complex { .. } => return Err(ParseError::not_implemented("complex constants", position)),
                 };
@@ -1426,4 +1435,34 @@ impl ParseError {
             ),
         }
     }
+}
+
+/// Parses an integer literal string into a `BigInt`, handling radix prefixes and underscores.
+///
+/// Supports Python integer literal formats:
+/// - Decimal: `123`, `1_000_000`
+/// - Hexadecimal: `0x1a2b`, `0X1A2B`
+/// - Octal: `0o777`, `0O777`
+/// - Binary: `0b1010`, `0B1010`
+///
+/// Returns `None` if the string cannot be parsed.
+fn parse_int_literal(s: &str) -> Option<BigInt> {
+    // Remove underscores (Python allows them as digit separators)
+    let cleaned: String = s.chars().filter(|c| *c != '_').collect();
+    let cleaned = cleaned.as_str();
+
+    // Detect radix from prefix
+    if cleaned.len() >= 2 {
+        let prefix = &cleaned[..2];
+        let digits = &cleaned[2..];
+        match prefix.to_ascii_lowercase().as_str() {
+            "0x" => return BigInt::parse_bytes(digits.as_bytes(), 16),
+            "0o" => return BigInt::parse_bytes(digits.as_bytes(), 8),
+            "0b" => return BigInt::parse_bytes(digits.as_bytes(), 2),
+            _ => {}
+        }
+    }
+
+    // Default to decimal
+    cleaned.parse::<BigInt>().ok()
 }
