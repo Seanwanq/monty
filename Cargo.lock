@@ -702,6 +702,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "csbindgen"
+version = "1.9.7"
+dependencies = [
+ "regex",
+ "syn",
+]
+
+[[package]]
 name = "ctor"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1557,6 +1565,7 @@ dependencies = [
  "ahash",
  "codspeed-criterion-compat",
  "criterion",
+ "csbindgen",
  "datatest-stable",
  "hashbrown 0.16.1",
  "indexmap",

@@ -15,6 +15,7 @@ repository = { workspace = true }
 [lib]
 name = "monty"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ruff_python_parser = { workspace = true }
@@ -49,6 +50,9 @@ datatest-stable = "0.2"
 serde_json = "1.0"
 pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
 similar = "2.7.0"
+
+[build-dependencies]
+csbindgen = { path = "../../../csbindgen/csbindgen" }
 
 [[bench]]
 name = "main"

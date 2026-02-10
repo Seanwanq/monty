@@ -169,6 +169,8 @@ pub enum ResourceError {
     Allocation { limit: usize, count: usize },
     /// Maximum execution time exceeded.
     Time { limit: Duration, elapsed: Duration },
+    /// Maximum instructions exceeded (gas limit).
+    Instructions { limit: u64, count: u64 },
     /// Maximum memory usage exceeded.
     Memory { limit: usize, used: usize },
     /// Maximum recursion depth exceeded.
@@ -185,6 +187,9 @@ impl fmt::Display for ResourceError {
             }
             Self::Time { limit, elapsed } => {
                 write!(f, "time limit exceeded: {elapsed:?} > {limit:?}")
+            }
+            Self::Instructions { limit, count } => {
+                write!(f, "instruction limit (gas) exceeded: {count} > {limit}")
             }
             Self::Memory { limit, used } => {
                 write!(f, "memory limit exceeded: {used} bytes > {limit} bytes")
@@ -223,6 +228,10 @@ impl ResourceError {
             Self::Time { limit, elapsed } => (
                 ExcType::TimeoutError,
                 Some(format!("time limit exceeded: {elapsed:?} > {limit:?}")),
+            ),
+            Self::Instructions { limit, count } => (
+                ExcType::RuntimeError,
+                Some(format!("instruction limit (gas) exceeded: {count} > {limit}")),
             ),
             Self::Recursion { .. } => (
                 ExcType::RecursionError,
@@ -352,6 +361,8 @@ pub struct ResourceLimits {
     pub max_allocations: Option<usize>,
     /// Maximum execution time.
     pub max_duration: Option<Duration>,
+    /// Maximum instructions (gas limit).
+    pub max_instructions: Option<u64>,
     /// Maximum heap memory in bytes (approximate).
     pub max_memory: Option<usize>,
     /// Run garbage collection every N allocations.
@@ -384,6 +395,13 @@ impl ResourceLimits {
     #[must_use]
     pub fn max_duration(mut self, limit: Duration) -> Self {
         self.max_duration = Some(limit);
+        self
+    }
+
+    /// Sets the maximum instructions (gas limit).
+    #[must_use]
+    pub fn max_instructions(mut self, limit: u64) -> Self {
+        self.max_instructions = Some(limit);
         self
     }
 
@@ -428,6 +446,8 @@ pub struct LimitedTracker {
     allocation_count: usize,
     /// Current approximate memory usage in bytes.
     current_memory: usize,
+    /// Total instructions executed.
+    instruction_count: u64,
 }
 
 impl LimitedTracker {
@@ -442,7 +462,14 @@ impl LimitedTracker {
             start_time: Instant::now(),
             allocation_count: 0,
             current_memory: 0,
+            instruction_count: 0,
         }
+    }
+
+    /// Returns the current instruction count.
+    #[must_use]
+    pub fn instruction_count(&self) -> u64 {
+        self.instruction_count
     }
 
     /// Returns the current allocation count.
@@ -500,6 +527,16 @@ impl ResourceTracker for LimitedTracker {
     }
 
     fn check_time(&mut self) -> Result<(), ResourceError> {
+        self.instruction_count += 1;
+        if let Some(max) = self.limits.max_instructions {
+            if self.instruction_count > max {
+                return Err(ResourceError::Instructions {
+                    limit: max,
+                    count: self.instruction_count,
+                });
+            }
+        }
+
         if let Some(max) = self.limits.max_duration {
             let elapsed = self.start_time.elapsed();
             if elapsed > max {

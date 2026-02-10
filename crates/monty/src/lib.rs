@@ -4,6 +4,7 @@ mod heap;
 
 mod args;
 mod asyncio;
+mod ffi;
 mod builtins;
 mod bytecode;
 mod exception_private;
