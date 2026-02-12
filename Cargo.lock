@@ -704,6 +704,8 @@ dependencies = [
 [[package]]
 name = "csbindgen"
 version = "1.9.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "710604f525e7b68070458083252602c2bf2afe255dfe019e83bd57bdfa50bdb4"
 dependencies = [
  "regex",
  "syn",
@@ -1567,8 +1569,10 @@ dependencies = [
  "criterion",
  "csbindgen",
  "datatest-stable",
+ "getrandom 0.3.4",
  "hashbrown 0.16.1",
  "indexmap",
+ "monty_type_checking",
  "num-bigint",
  "num-integer",
  "num-traits",
